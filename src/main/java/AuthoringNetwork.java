@@ -3,11 +3,13 @@ import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapreduce.*;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.reduce.LongSumReducer;
 import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
@@ -27,8 +29,9 @@ import java.util.Map;
  */
 public class AuthoringNetwork extends Configured implements Tool {
 
-    public static class ANMapper extends Mapper<Object, Text, Text, Text> {
+    public static class ANMapper extends Mapper<Object, Text, ANWritable, LongWritable> {
 
+        private final LongWritable one = new LongWritable(1);
         public void map(Object key, Text value, Context context)
                 throws IOException, InterruptedException {
 
@@ -39,7 +42,7 @@ public class AuthoringNetwork extends Configured implements Tool {
                     String author = authors.getString(i);
                     for (int j = 0; j < authors.length(); j++) {
                         if (i != j) {
-                            context.write(new Text(author), new Text(authors.getString(j)));
+                            context.write(new ANWritable(new Text(author), new Text(authors.getString(j))), one);
                         }
                     }
                 }
@@ -49,32 +52,7 @@ public class AuthoringNetwork extends Configured implements Tool {
         }
     }
 
-    public static class ANReducer extends Reducer<Text,Text,Text,ANWritable> {
-
-        public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-            Map counters = new HashMap<>();
-            values.forEach(t -> incrementValue(counters, t));
-            counters.keySet().forEach(k -> {
-                try {
-                    context.write(key, new ANWritable(k.toString(), (Integer) counters.get(k)));
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            });
-        }
-
-        private static void incrementValue(Map counters, Text toAdd) {
-            Integer currValue = (Integer) counters.get(toAdd);
-            if (currValue == null)
-                counters.put(toAdd, 1);
-            else
-                counters.put(toAdd, currValue+1);
-        }
-    }
-
-    public static class ANWritable implements WritableComparable<ANWritable> {
+    /*public static class ANWritable implements WritableComparable<ANWritable> {
 
         private String coAuthor;
         private int weight;
@@ -119,10 +97,13 @@ public class AuthoringNetwork extends Configured implements Tool {
             coAuthor = dataInput.readUTF();
             weight = dataInput.readInt();
         }
-    }
-
+    }*/
+/*
     // http://johnnyprogrammer.blogspot.com.es/2012/01/custom-file-output-in-hadoop.html
     public class ANOutputFormat extends FileOutputFormat<Text, ANWritable> {
+        public ANOutputFormat() {
+        }
+
         @Override
         public org.apache.hadoop.mapreduce.RecordWriter<Text, ANWritable> getRecordWriter(TaskAttemptContext arg0) throws IOException, InterruptedException {
             //get the current path
@@ -162,7 +143,7 @@ public class AuthoringNetwork extends Configured implements Tool {
         public void write(Text arg0, ANWritable arg1) throws IOException, InterruptedException {
             out.writeBytes(arg0.toString() + " -- " + arg1.coAuthor + "[label=" + arg1.weight + "]\r\n");
         }
-    }
+    }*/
 
 
     @Override
@@ -175,10 +156,10 @@ public class AuthoringNetwork extends Configured implements Tool {
         Job job = Job.getInstance(conf);
         job.setMapperClass(ANMapper.class);
         job.setJarByClass(AuthoringNetwork.class);
-        job.setReducerClass(ANReducer.class);
+        job.setReducerClass(LongSumReducer.class);
 
-        job.setOutputKeyClass(Text.class);
-        job.setOutputValueClass(ANWritable.class);
+        job.setOutputKeyClass(ANWritable.class);
+        job.setOutputValueClass(LongWritable.class);
         job.setOutputFormatClass(ANOutputFormat.class);
 
         FileInputFormat.addInputPath(job, new Path(args[0]));
