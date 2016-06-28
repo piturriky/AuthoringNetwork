@@ -1,0 +1,3 @@
+- Copiar .jar a cluster
+scp /Users/lluis/AuthoringNetwork/out/artifacts/Authoringnetwork/Authoringnetwork.jar echeverria@gcd007.udl.cat:/home/echeverria/HDFS/AuthoringNetwork
+
