@@ -40,4 +40,21 @@ public class ANWritable  implements WritableComparable<ANWritable> {
         author1.readFields(dataInput);
         author2.readFields(dataInput);
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        ANWritable that = (ANWritable) o;
+
+        return (author1.equals(author1) && author2.equals(author2)) ||
+                (author1.equals(author2) && author2.equals(author1));
+
+    }
+
+    @Override
+    public int hashCode() {
+        return author1.hashCode() + author2.hashCode();
+    }
 }
