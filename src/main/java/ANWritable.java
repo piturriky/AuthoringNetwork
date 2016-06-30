@@ -24,9 +24,9 @@ public class ANWritable  implements WritableComparable<ANWritable> {
 
     @Override
     public int compareTo(ANWritable o) {
-        int compareResult = author1.compareTo(o.author2) + author2.compareTo(o.author1);
+        boolean crossEquals = author1.equals(o.author2) && author2.equals(o.author1);
 
-        return compareResult == 0 ? compareResult : author1.compareTo(o.author1) + author2.compareTo(o.author2);
+        return crossEquals ? 0 : author1.compareTo(o.author1) + author2.compareTo(o.author2);
     }
 
     @Override
@@ -48,8 +48,8 @@ public class ANWritable  implements WritableComparable<ANWritable> {
 
         ANWritable that = (ANWritable) o;
 
-        return (author1.equals(author1) && author2.equals(author2)) ||
-                (author1.equals(author2) && author2.equals(author1));
+        return (author1.equals(that.author1) && author2.equals(that.author2)) ||
+                (author1.equals(that.author2) && author2.equals(that.author1));
 
     }
 
