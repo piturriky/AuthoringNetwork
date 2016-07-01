@@ -31,6 +31,6 @@ public class ANRecordWriter  extends RecordWriter<ANWritable, LongWritable> {
     @Override
     public void write(ANWritable relation, LongWritable weight) throws IOException, InterruptedException {
         if(relation.author1.getLength() != 0 && relation.author2.getLength() != 0)
-            out.writeBytes("\"" + relation.author1 + "\" -- \"" + relation.author2 + "\" [label=" + weight + "]\r\n");
+            out.write(("\"" + relation.author1.toString() + "\" -- \"" + relation.author2.toString() + "\" [label=" + weight + "]\r\n").getBytes("UTF-8"));
     }
 }
