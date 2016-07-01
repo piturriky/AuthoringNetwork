@@ -4,7 +4,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.*;
-import org.apache.hadoop.mapreduce.lib.chain.ChainMapper;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.reduce.LongSumReducer;
@@ -23,8 +22,7 @@ import java.util.*;
  */
 public class AuthoringNetwork extends Configured implements Tool {
 
-    public static class FirstMapper extends Mapper<Object, Text, ANWritable, LongWritable> {
-        private Set<String> coauthors = new HashSet<>();
+    public static class ANMapper extends Mapper<Object, Text, ANWritable, LongWritable> {
         private String analysedAuthor = "";
 
         @Override
@@ -39,57 +37,32 @@ public class AuthoringNetwork extends Configured implements Tool {
             try {
                 JSONObject jsonObject = new JSONObject(value.toString());
                 JSONArray authors = jsonObject.getJSONArray("authors");
-                int analysedAuthorPosition = -1;
-                for (int i = 0; i < authors.length(); i++) {
-                    String author = authors.getString(i);
-                    for (int j = i + 1; j < authors.length(); j++) {
-                        if (i != j) {
-                            context.write(new ANWritable(new Text(author), new Text(authors.getString(j))), one);
-                        }
-                    }
-                    if(author.equals(analysedAuthor))
-                        analysedAuthorPosition = i;
-                }
 
-                if(analysedAuthorPosition != -1)
-                    for (int i = 0; i < authors.length(); i++) {
-                        if(i != analysedAuthorPosition)
-                            coauthors.add(authors.getString(i));
+                int analysedAuthorPosition = -1;
+                for(int i = 0; i < authors.length(); i++)
+                    if(authors.getString(i).equals(analysedAuthor)) {
+                        analysedAuthorPosition = i;
+                        break;
                     }
+                if(analysedAuthorPosition == -1) return;
+
+                System.out.println("POSITION -- " + analysedAuthorPosition);
+
+                for (int i = 0; i < authors.length(); i++) {
+                    if(i == analysedAuthorPosition) continue;
+                    String author = authors.getString(i);
+
+                    System.out.println("EXTERNAL -- " + author);
+                    for (int j = i + 1; j < authors.length(); j++) {
+                        if(j == analysedAuthorPosition) continue;
+
+                        System.out.println("INTERNAL -- " + authors.getString(j));
+                        context.write(new ANWritable(new Text(author), new Text(authors.getString(j))), one);
+                    }
+                }
             } catch (JSONException e) {
                     e.printStackTrace();
             }
-        }
-
-        @Override
-        protected void cleanup(Context context) throws IOException, InterruptedException {
-            context.getConfiguration().setStrings("coauthors", coauthors.toArray(new String[coauthors.size()]));
-            context.getConfiguration().setStrings("test", "A", "B", "C");
-        }
-    }
-
-    public static class SecondMapper extends Mapper<ANWritable, LongWritable, ANWritable, LongWritable> {
-        
-        private final LongWritable one = new LongWritable(1);
-        private Collection<String> coauthors;
-
-        @Override
-        protected void setup(Context context) throws IOException, InterruptedException {
-            coauthors = context.getConfiguration().getStringCollection("coauthors");
-            for(String s: coauthors)
-                System.out.println(s);
-
-
-            Collection<String> test = context.getConfiguration().getStringCollection("test");
-            for(String s: test)
-                System.out.println(s);
-        }
-
-        public void map(ANWritable key, LongWritable value, Context context)
-                throws IOException, InterruptedException {
-
-            if(coauthors.contains(key.author1) && coauthors.contains(key.author2))
-                context.write(key, value);
         }
     }
 
@@ -110,15 +83,7 @@ public class AuthoringNetwork extends Configured implements Tool {
 
         Job job = Job.getInstance(conf);
 
-
-
-        Configuration firstMapperConfig = new Configuration(false);
-        ChainMapper.addMapper(job, FirstMapper.class, Object.class,Text.class, ANWritable.class, LongWritable.class, firstMapperConfig);
-
-        Configuration secondMapperConfig = new Configuration(false);
-        ChainMapper.addMapper(job, SecondMapper.class, ANWritable.class, LongWritable.class, ANWritable.class, LongWritable.class, secondMapperConfig);
-
-//        job.setMapperClass(FirstMapper.class);
+        job.setMapperClass(ANMapper.class);
         job.setJarByClass(AuthoringNetwork.class);
         job.setReducerClass(LongSumReducer.class);
 

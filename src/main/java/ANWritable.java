@@ -13,8 +13,13 @@ public class ANWritable  implements WritableComparable<ANWritable> {
     public Text author1, author2;
 
     public ANWritable(Text author1, Text author2) {
-        this.author1 = author1;
-        this.author2 = author2;
+        if(author1.compareTo(author2) > 0) {
+            this.author1 = author1;
+            this.author2 = author2;
+        }else{
+            this.author1 = author2;
+            this.author2 = author1;
+        }
     }
 
     public ANWritable(){
@@ -24,9 +29,9 @@ public class ANWritable  implements WritableComparable<ANWritable> {
 
     @Override
     public int compareTo(ANWritable o) {
-        boolean crossEquals = author1.equals(o.author2) && author2.equals(o.author1);
+//        boolean crossEquals = author1.equals(o.author2) && author2.equals(o.author1);
 
-        return crossEquals ? 0 : author1.compareTo(o.author1) + author2.compareTo(o.author2);
+        return /*crossEquals ? 0 : */(author1.toString()+author2.toString()).compareTo((o.author1.toString()+o.author2.toString()));
     }
 
     @Override
@@ -48,13 +53,15 @@ public class ANWritable  implements WritableComparable<ANWritable> {
 
         ANWritable that = (ANWritable) o;
 
-        return (author1.equals(that.author1) && author2.equals(that.author2)) ||
-                (author1.equals(that.author2) && author2.equals(that.author1));
+        if (author1 != null ? !author1.equals(that.author1) : that.author1 != null) return false;
+        return author2 != null ? author2.equals(that.author2) : that.author2 == null;
 
     }
 
     @Override
     public int hashCode() {
-        return author1.hashCode() + author2.hashCode();
+        int result = author1 != null ? author1.hashCode() : 0;
+        result = 31 * result + (author2 != null ? author2.hashCode() : 0);
+        return result;
     }
 }
