@@ -46,17 +46,13 @@ public class AuthoringNetwork extends Configured implements Tool {
                     }
                 if(analysedAuthorPosition == -1) return;
 
-                System.out.println("POSITION -- " + analysedAuthorPosition);
-
                 for (int i = 0; i < authors.length(); i++) {
                     if(i == analysedAuthorPosition) continue;
                     String author = authors.getString(i);
 
-                    System.out.println("EXTERNAL -- " + author);
                     for (int j = i + 1; j < authors.length(); j++) {
                         if(j == analysedAuthorPosition) continue;
 
-                        System.out.println("INTERNAL -- " + authors.getString(j));
                         context.write(new ANWritable(new Text(author), new Text(authors.getString(j))), one);
                     }
                 }
